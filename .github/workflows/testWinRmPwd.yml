@@ -19,6 +19,9 @@ jobs:
       run: |
         choco install jq
 
+    - name: Print EC2_PASSWORD
+      run: echo "EC2_PASSWORD=${{ secrets.EC2_PASSWORD }}"
+
     - name: Set WinRM Password
       run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $GITHUB_ENV
     
