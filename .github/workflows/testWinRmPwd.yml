@@ -32,7 +32,7 @@ jobs:
       id: determine-directory
       shell: pwsh
       run: |
-        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ env.WINRM_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
         Invoke-Command -Session $session -ScriptBlock {
           $bluePath = "C:\websites\zPax-Test-Portal-blue"
           $greenPath = "C:\websites\zPax-Test-Portal-green"
@@ -50,7 +50,7 @@ jobs:
     - name: Extract files and configure IIS
       shell: pwsh
       run: |
-        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ env.WINRM_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
         Invoke-Command -Session $session -ScriptBlock {
           cd C:\websites\${{ env.target_directory }}
           tar -xzvf publish.tar.gz
