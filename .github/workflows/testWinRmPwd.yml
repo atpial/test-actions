@@ -22,9 +22,6 @@ jobs:
     - name: Set WinRM Password
       run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $GITHUB_ENV
 
-    - name: Set WinRM Password
-      run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $GITHUB_ENV
-
     - name: Determine target directory
       id: determine-directory
       shell: pwsh
