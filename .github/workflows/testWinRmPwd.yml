@@ -9,7 +9,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest  # Use Windows runner
 
     steps:
     - name: Checkout code
@@ -17,14 +17,14 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y jq
+        choco install jq
 
     - name: Set WinRM Password
       run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $GITHUB_ENV
 
     - name: Print EC2_HOST
       run: echo "EC2_HOST=${{ secrets.EC2_HOST }}"
+
     - name: Print EC2_USER
       run: echo "EC2_USER=${{ secrets.EC2_USER }}"
 
