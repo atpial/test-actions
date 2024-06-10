@@ -49,13 +49,13 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: publish
-        path: ./artifact
+        # path: ./artifact
 
-    - name: Set artifact path environment variable
-      run: echo "ARTIFACT_PATH=$(pwd)/artifact/publish.tar.gz" >> $GITHUB_ENV
+    # - name: Set artifact path environment variable
+    #   run: echo "ARTIFACT_PATH=$(pwd)/artifact/publish.tar.gz" >> $GITHUB_ENV
 
     - name: Verify artifact download
-      run: dir ./artifact
+      run: dir ./
         
     - name: Install dependencies
       run: |
@@ -90,15 +90,8 @@ jobs:
     - name: Copy artifact to target directory
       shell: pwsh
       run: |
-        if (Test-Path "${{ env.ARTIFACT_PATH }}") {
-          $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
-          Invoke-Command -Session $session -ScriptBlock {
-            Copy-Item -Path "${{ env.ARTIFACT_PATH }}" -Destination "C:\websites\${{ env.target_directory }}" -Force
-          }
-          Remove-PSSession -Session $session
-        } else {
-          Write-Error "Artifact not found at ${{ env.ARTIFACT_PATH }}"
-        }
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        Copy-Item "./publish.tar.gz" -Destination "C:\websites\${{ env.target_directory }}" -ToSession $session
 
     - name: Verify artifact copy
       shell: pwsh
