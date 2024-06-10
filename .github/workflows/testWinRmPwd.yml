@@ -107,15 +107,21 @@ jobs:
       run: |
         $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
         Invoke-Command -Session $session -ScriptBlock {
-          # cd "C:\websites\${{ env.target_directory }}"
-          cd "C:\Users\Administrator\publish2"
-          tar -xzvf "publish.tar.gz"
-          Remove-Item "publish.tar.gz"
-          Import-Module WebAdministration
-
-          $currentPhysicalPath = (Get-Website -Name "zPax-Test-Portal").PhysicalPath
-          Write-Output "Current physical path of the website 'zPax-Test-Portal': $currentPhysicalPath"
+          # Debug logging for paths
+          Write-Output "Current directory before changing: $(Get-Location)"
+          cd "C:\websites\${{ env.target_directory }}"
+          Write-Output "Changed to directory: $(Get-Location)"
           
+          # Verify tar file exists
+          if (Test-Path "publish.tar.gz") {
+            Write-Output "Found publish.tar.gz, extracting..."
+            tar -xzvf "publish.tar.gz"
+            Remove-Item "publish.tar.gz"
+          } else {
+            Write-Error "publish.tar.gz not found in $(Get-Location)"
+            exit 1
+          }
+          Import-Module WebAdministration
           if ((Get-WebSite -Name "zPax-Test-Portal").PhysicalPath -eq "C:\websites\zPax-Test-Portal-blue") {
             Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value "C:\websites\zPax-Test-Portal-green"
           } else {
