@@ -62,7 +62,7 @@ jobs:
         choco install jq
 
     - name: Set WinRM Password
-      run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $GITHUB_ENV
+      run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $env:GITHUB_ENV
 
 
     - name: Ensure directories exist and determine target directory
@@ -81,7 +81,7 @@ jobs:
             return "zPax-Test-Portal-blue"
           }
         } -ArgumentList $null -OutVariable targetDirectory
-        echo "target_directory=$($targetDirectory.Trim().Replace('return', '').Trim())" >> $GITHUB_ENV
+        echo "target_directory=$($targetDirectory.Trim().Replace('return', '').Trim())" >> $env:GITHUB_ENV
         Remove-PSSession -Session $session
 
     - name: Verify target directory
