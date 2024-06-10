@@ -6,8 +6,40 @@ on:
       - dev
       - master
 jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release
+
+    - name: Publish
+      run: dotnet publish -c Release -o ./publish
+
+    - name: Archive project files
+      run: tar -czvf publish.tar.gz -C ./publish .
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: publish
+        path: publish.tar.gz
+
   deploy:
     runs-on: windows-latest  # Use Windows runner
+    needs: build
 
     steps:
     - name: Checkout code
@@ -46,12 +78,12 @@ jobs:
         echo "target_directory=$($targetDirectory.Trim().Replace('return', '').Trim())" >> $GITHUB_ENV
         Remove-PSSession -Session $session
 
-    # - name: Copy artifact to target directory
-    #   shell: pwsh
-    #   run: |
-    #     $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
-    #     Copy-Item -Path ./artifact/publish.tar.gz -Destination C:\websites\${{ env.target_directory }} -ToSession $session
-    #     Remove-PSSession -Session $session
+    - name: Copy artifact to target directory
+      shell: pwsh
+      run: |
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        Copy-Item -Path ./artifact/publish.tar.gz -Destination C:\websites\${{ env.target_directory }} -ToSession $session
+        Remove-PSSession -Session $session
 
     - name: Extract files and configure IIS
       shell: pwsh
