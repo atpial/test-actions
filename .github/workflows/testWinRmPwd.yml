@@ -67,17 +67,17 @@ jobs:
       shell: pwsh
       run: |
         $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
-        $targetDirectory = Invoke-Command -Session $session -ScriptBlock {
+        Invoke-Command -Session $session -ScriptBlock {
           $bluePath = "C:\websites\zPax-Test-Portal-blue"
           $greenPath = "C:\websites\zPax-Test-Portal-green"
           if (-Not (Test-Path $bluePath)) { New-Item -ItemType Directory -Path $bluePath }
           if (-Not (Test-Path $greenPath)) { New-Item -ItemType Directory -Path $greenPath }
-          if ((Get-Website -Name "zPax-Test-Portal").PhysicalPath -eq $bluePath) {
+          if (Test-Path $bluePath) {
             return "zPax-Test-Portal-green"
           } else {
             return "zPax-Test-Portal-blue"
           }
-        }
+        } -ArgumentList $null -OutVariable targetDirectory
         echo "target_directory=$($targetDirectory.Trim().Replace('return', '').Trim())" >> $GITHUB_ENV
         Remove-PSSession -Session $session
 
