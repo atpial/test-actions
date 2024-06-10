@@ -20,6 +20,12 @@ jobs:
     - name: Set WinRM Password
       run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $GITHUB_ENV
 
+     - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: publish
+        path: ./artifact
+
     - name: Ensure directories exist and determine target directory
       id: determine-directory
       shell: pwsh
@@ -39,6 +45,13 @@ jobs:
         echo "target_directory=$($targetDirectory.Trim().Replace('return', '').Trim())" >> $GITHUB_ENV
         Remove-PSSession -Session $session
 
+    - name: Copy artifact to target directory
+      shell: pwsh
+      run: |
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        Copy-Item -Path ./artifact/publish.tar.gz -Destination C:\websites\${{ env.target_directory }} -ToSession $session
+        Remove-PSSession -Session $session
+
     - name: Extract files and configure IIS
       shell: pwsh
       run: |
@@ -56,6 +69,6 @@ jobs:
           Restart-WebAppPool -Name "zPax-Test-Portal"
         }
         Remove-PSSession -Session $session
-        
+
     - name: Complete job
       run: echo "Deployment completed."
