@@ -28,14 +28,21 @@ jobs:
     - name: Publish
       run: dotnet publish -c Release -o ./publish
 
+    # - name: Archive project files
+    #   run: tar -czvf publish.tar.gz -C ./publish .
     - name: Archive project files
-      run: tar -czvf publish.tar.gz -C ./publish .
+      shell: pwsh
+      run: |
+        Compress-Archive -Path ./publish -DestinationPath publish.zip
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        # Copy-Item "publish.tar.gz" -Destination "C:\websites\${{ env.target_directory }}" -ToSession $session
+        Copy-Item "publish.zip" -Destination "C:\websites\${{ env.target_directory }}" -ToSession $session
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: publish
-        path: publish.tar.gz
+        path: publish.zip
 
   deploy:
     runs-on: windows-latest  # Use Windows runner
@@ -91,7 +98,7 @@ jobs:
       shell: pwsh
       run: |
         $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
-        Copy-Item "./publish.tar.gz" -Destination "C:\websites\${{ env.target_directory }}" -ToSession $session
+        Copy-Item "publish.zip" -Destination "C:\websites\${{ env.target_directory }}" -ToSession $session
 
     - name: Verify artifact copy
       shell: pwsh
@@ -113,15 +120,16 @@ jobs:
           Write-Output "Changed to directory: $(Get-Location)"
           
           # Verify tar file exists
-          if (Test-Path "publish.tar.gz") {
-            Write-Output "Found publish.tar.gz, extracting..."
-            tar -xzvf "publish.tar.gz"
-            Remove-Item "publish.tar.gz"
+          if (Test-Path "publish.zip") {
+            Write-Output "Found publish.zip, extracting..."
+            # tar -xzvf "publish.tar.gz"
+            Expand-Archive -Path publish.zip -DestinationPath . -Force
+            Remove-Item "publish.zip"
           } else {
-            Write-Error "publish.tar.gz not found in $(Get-Location)"
+            Write-Error "publish.zip not found in $(Get-Location)"
             exit 1
           }
-          
+
           try {
             Import-Module WebAdministration -ErrorAction Stop
             $currentPhysicalPath = (Get-Website -Name "zPax-Test-Portal").PhysicalPath
