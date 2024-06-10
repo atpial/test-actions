@@ -50,6 +50,9 @@ jobs:
       with:
         name: publish
         path: ./artifact
+
+    - name: Verify artifact download
+      run: dir ./artifact
         
     - name: Install dependencies
       run: |
