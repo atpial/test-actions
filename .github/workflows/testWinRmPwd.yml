@@ -107,17 +107,25 @@ jobs:
       run: |
         $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
         Invoke-Command -Session $session -ScriptBlock {
-          # cd "C:\websites\${{ env.target_directory }}"
-          cd "C:\Users\Administrator\publish2"
+          # cd "C:\Users\Administrator\publish2"
+          cd "C:\websites\${{ env.target_directory }}"
           tar -xzvf "publish.tar.gz"
           Remove-Item "publish.tar.gz"
-          Import-Module WebAdministration
-          if ((Get-Website -Name "zPax-Test-Portal").PhysicalPath -eq "C:\websites\zPax-Test-Portal-blue") {
-            Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value "C:\websites\zPax-Test-Portal-green"
-          } else {
-            Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value "C:\websites\zPax-Test-Portal-blue"
+          try {
+            # Check if WebAdministration module is available and install IIS if necessary
+            if (-not (Get-Module -ListAvailable -Name WebAdministration)) {
+              Install-WindowsFeature -name Web-Server -IncludeManagementTools
+            }
+            Import-Module WebAdministration -ErrorAction Stop
+            if ((Get-Website -Name "zPax-Test-Portal").PhysicalPath -eq "C:\websites\zPax-Test-Portal-blue") {
+              Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value "C:\websites\zPax-Test-Portal-green"
+            } else {
+              Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value "C:\websites\zPax-Test-Portal-blue"
+            }
+            Restart-WebAppPool -Name "zPax-Test-Portal"
+          } catch {
+            Write-Error "Failed to import WebAdministration module or manage IIS: $_"
           }
-          Restart-WebAppPool -Name "zPax-Test-Portal"
         }
         Remove-PSSession -Session $session
         
