@@ -1,12 +1,10 @@
 name: Deploy .NET 8 Project to IIS with Zero Downtime
-
 on:
   push:
     branches:
       - main
       - dev
       - master
-
 jobs:
   deploy:
     runs-on: windows-latest  # Use Windows runner
@@ -19,34 +17,32 @@ jobs:
       run: |
         choco install jq
 
-    - name: Print EC2_PASSWORD
-      run: echo "EC2_PASSWORD=${{ secrets.EC2_PASSWORD }}"
-
     - name: Set WinRM Password
       run: echo "WINRM_PASSWORD=${{ secrets.EC2_PASSWORD }}" >> $GITHUB_ENV
-    
-    - name: Print WINRM_PASSWORD
-      run: echo "WINRM_PASSWORD=${{ env.WINRM_PASSWORD }}"
 
-    - name: Determine target directory
+    - name: Ensure directories exist and determine target directory
       id: determine-directory
       shell: pwsh
       run: |
-        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ env.WINRM_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
-        $targetDirectory = Invoke-Command -Session $session -ScriptBlock {
-          if (Test-Path "C:\websites\zPax-Test-Portal-blue") {
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        Invoke-Command -Session $session -ScriptBlock {
+          $bluePath = "C:\websites\zPax-Test-Portal-blue"
+          $greenPath = "C:\websites\zPax-Test-Portal-green"
+          if (-Not (Test-Path $bluePath)) { New-Item -ItemType Directory -Path $bluePath }
+          if (-Not (Test-Path $greenPath)) { New-Item -ItemType Directory -Path $greenPath }
+          if (Test-Path $bluePath) {
             return "zPax-Test-Portal-green"
           } else {
             return "zPax-Test-Portal-blue"
           }
-        }
-        echo "target_directory=$targetDirectory" >> $GITHUB_ENV
+        } -ArgumentList $null -OutVariable targetDirectory
+        echo "target_directory=$($targetDirectory.Trim().Replace('return', '').Trim())" >> $GITHUB_ENV
         Remove-PSSession -Session $session
 
     - name: Extract files and configure IIS
       shell: pwsh
       run: |
-        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ env.WINRM_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+        $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
         Invoke-Command -Session $session -ScriptBlock {
           cd C:\websites\${{ env.target_directory }}
           tar -xzvf publish.tar.gz
@@ -60,6 +56,6 @@ jobs:
           Restart-WebAppPool -Name "zPax-Test-Portal"
         }
         Remove-PSSession -Session $session
-
+        
     - name: Complete job
       run: echo "Deployment completed."
