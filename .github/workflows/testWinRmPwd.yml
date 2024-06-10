@@ -107,7 +107,8 @@ jobs:
       run: |
         $session = New-PSSession -ComputerName ${{ secrets.EC2_HOST }} -Credential (New-Object PSCredential('${{ secrets.EC2_USER }}', (ConvertTo-SecureString '${{ secrets.EC2_PASSWORD }}' -AsPlainText -Force))) -Port ${{ secrets.EC2_PORT }} -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
         Invoke-Command -Session $session -ScriptBlock {
-          cd "C:\websites\${{ env.target_directory }}"
+          # cd "C:\websites\${{ env.target_directory }}"
+          cd "C:\Users\Administrator\publish2"
           tar -xzvf "publish.tar.gz"
           Remove-Item "publish.tar.gz"
           Import-Module WebAdministration
