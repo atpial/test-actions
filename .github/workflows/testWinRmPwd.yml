@@ -121,15 +121,32 @@ jobs:
             Write-Error "publish.tar.gz not found in $(Get-Location)"
             exit 1
           }
-          Import-Module WebAdministration
-          if ((Get-WebSite -Name "zPax-Test-Portal").PhysicalPath -eq "C:\websites\zPax-Test-Portal-blue") {
-            Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value "C:\websites\zPax-Test-Portal-green"
-          } else {
-            Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value "C:\websites\zPax-Test-Portal-blue"
+          
+          try {
+            Import-Module WebAdministration -ErrorAction Stop
+            $currentPhysicalPath = (Get-Website -Name "zPax-Test-Portal").PhysicalPath
+            Write-Output "Current physical path of the website 'zPax-Test-Portal': $currentPhysicalPath"
+            
+            $bluePath = "C:\websites\zPax-Test-Portal-blue"
+            $greenPath = "C:\websites\zPax-Test-Portal-green"
+            Write-Output "Comparing with path: $bluePath"
+            Write-Output "Comparing with path: $greenPath"
+
+            if ($currentPhysicalPath -eq $bluePath) {
+              Write-Output "Current path matches blue path. Switching to green path."
+              Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value $greenPath
+            } else {
+              Write-Output "Current path does not match blue path. Switching to blue path."
+              Set-ItemProperty "IIS:\Sites\zPax-Test-Portal" -name physicalPath -value $bluePath
+            }
+            Write-Output "Restarting the application pool 'zPax-Test-Portal'."
+            Restart-WebAppPool -Name "zPax-Test-Portal"
+          } catch {
+            Write-Error "Failed to import WebAdministration module or manage IIS: $_"
           }
-          Restart-WebAppPool -Name "zPax-Test-Portal"
         }
         Remove-PSSession -Session $session
+
         
     - name: Complete job
       run: echo "Deployment completed."
